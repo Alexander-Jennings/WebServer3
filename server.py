@@ -14,7 +14,6 @@ def get_path(httpRequest):
 	
 def get_file_contents(path):
 	"""Returns the contents of the specified file as a string. Path should include the name of the file."""
-	path = path[1:] # remove the leading slash
 	file = open(path)
 	contents = file.read()
 	file.close()
@@ -39,10 +38,10 @@ def compute_content_type(path):
 		return 'text/html'
 	
 def main():
-	doc_root = ''
+	doc_root = 'content'
 	doc_index = '/index.html'
-	site_index = '/site_index.html'
-	file_not_found_page = '/no_such_file.html'
+	site_index = doc_root + '/site_index.html'
+	file_not_found_page = doc_root + '/no_such_file.html'
 	
 	valid_paths = ['/', '/index.html', '/books/tomsawyer.txt', '/books/theimportanceofbeingearnest.txt', '/pictures/puppy.jpg', '/pictures/catfight.jpg']
 	
@@ -78,15 +77,16 @@ def main():
 			res.location = redirects[path]
 			res.content_type = ''
 			res.content_length = ''
+				#requested a directory
+		elif path[1:] in directories:
+			body = get_file_contents(site_index)
 		#requested a valid document
 		elif path in valid_paths:
 			path = doc_root + path
 			body = get_file_contents(path)
 			res.content_type = compute_content_type(path)
 			res.status_code = 200
-		#requested a directory
-		elif path[1:] in directories:
-			body = get_file_contents(site_index)
+
 		#don't have the requested file
 		else:
 			res.status_code = 404
