@@ -56,6 +56,9 @@ def main():
 	redirects['/tomsawyer'] = '/books/tomsawyer.txt'
 	redirects['/earnest'] = '/books/theimportanceofbeingearnest.txt'
 	
+	# list of urls to ignore - do not try to serve anything 
+	url_ignore_list = ['/favicon.ico', '']
+	
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.bind(('',8080))
 	sock.listen(5)
@@ -71,33 +74,35 @@ def main():
 		
 		body = ''
 		
-		#redirect to valid document
-		if path in redirects:
-			res.status_code = 302
-			res.location = redirects[path]
-			res.content_type = ''
-			res.content_length = ''
-				#requested a directory
-		elif path[1:] in directories:
-			body = get_file_contents(site_index)
-		#requested a valid document
-		elif path in valid_paths:
-			path = doc_root + path
-			body = get_file_contents(path)
-			res.content_type = compute_content_type(path)
-			res.status_code = 200
+		if path not in url_ignore_list:
+			#redirect to valid document
+			if path in redirects:
+				res.status_code = 302
+				res.location = redirects[path]
+				res.content_type = ''
+				res.content_length = ''
+					#requested a directory
+			elif path[1:] in directories:
+				body = get_file_contents(site_index)
+			#requested a valid document
+			elif path in valid_paths:
+				path = doc_root + path
+				body = get_file_contents(path)
+				res.content_type = compute_content_type(path)
+				res.status_code = 200
 
-		#don't have the requested file
-		else:
-			res.status_code = 404
-			body = get_file_contents(file_not_found_page)
+			#don't have the requested file
+			else:
+				res.status_code = 404
+				body = get_file_contents(file_not_found_page)
+				
 			
-		
-		if path not in redirects:
-			res.text = body
-		res.headers['Connection'] = 'close'
-		conn.send('HTTP/1.1 '.encode('utf-8') + str(res).encode('utf-8'))
-		conn.close()
+			if path not in redirects:
+				res.text = body
+				
+			res.headers['Connection'] = 'close'
+			conn.send('HTTP/1.1 '.encode('utf-8') + str(res).encode('utf-8'))
+			conn.close()
 
 
 if __name__ == '__main__':
