@@ -3,6 +3,10 @@ import os
 import socket
 from webob import Response
 
+def get_file_suffix(path):
+	"""Returns the file ending for the file specified by path. e.g., txt, jpg"""
+	return path[path.find('.')+1:]
+
 def get_path(httpRequest):
 	try:
 		path = httpRequest.split()[1]
@@ -14,14 +18,26 @@ def get_path(httpRequest):
 	
 def get_file_contents(path):
 	"""Returns the contents of the specified file as a string. Path should include the name of the file."""
-	file = open(path)
-	contents = file.read()
-	file.close()
+	suffix = get_file_suffix(path)
+	if suffix == 'jpg' or suffix == 'png' or suffix == 'gif':
+		with open(path, 'rb') as file:
+			return str(file.read())
+	else:
+		with open(path) as file:
+			return file.read()
 	return contents
+
+def compute_charset(path):
+	"""Returns the appropriate charset given the path"""
+	suffix = get_file_suffix(path)
+	if suffix == 'jpg' or suffix == 'png' or suffix == 'gif':
+		return ''
+	else:
+		return 'utf-8'
 	
 def compute_content_type(path):
 	"""Returns the content type associated with file with the given path"""
-	suffix = path[path.find('.')+1:]
+	suffix = get_file_suffix(path)
 	if suffix == 'txt':
 		return 'text/plain'
 	elif suffix == 'jpg':
@@ -71,9 +87,7 @@ def main():
 		res = Response()
 		
 		path = get_path(request)
-		
-		body = ''
-		
+				
 		if path not in url_ignore_list:
 			#redirect to valid document
 			if path in redirects:
@@ -81,27 +95,22 @@ def main():
 				res.location = redirects[path]
 				res.content_type = ''
 				res.content_length = ''
-					#requested a directory
+			#requested a directory
 			elif path[1:] in directories:
-				body = get_file_contents(site_index)
+				res.text = get_file_contents(site_index)
 			#requested a valid document
 			elif path in valid_paths:
 				path = doc_root + path
-				body = get_file_contents(path)
+				res.text = get_file_contents(path)
 				res.content_type = compute_content_type(path)
 				res.status_code = 200
-
 			#don't have the requested file
 			else:
 				res.status_code = 404
-				body = get_file_contents(file_not_found_page)
-				
-			
-			if path not in redirects:
-				res.text = body
+				res.text = get_file_contents(file_not_found_page)
 				
 			res.headers['Connection'] = 'close'
-			conn.send('HTTP/1.1 '.encode('utf-8') + str(res).encode('utf-8'))
+			conn.send('HTTP/1.1 '.encode('utf-8') + str(res).encode())
 			conn.close()
 
 
